@@ -1,7 +1,7 @@
-package Facebook::Graph::AccessToken;
+package Facebook::Graph::Session;
 
 use Any::Moose;
-use Facebook::Graph::AccessToken::Response;
+use Facebook::Graph::Response;
 with 'Facebook::Graph::Role::Uri';
 use LWP::UserAgent;
 
@@ -15,12 +15,7 @@ has secret => (
     required=> 1,
 );
 
-has postback => (
-    is      => 'ro',
-    required=> 1,
-);
-
-has code => (
+has sessions => (
     is      => 'ro',
     required=> 1,
 );
@@ -30,10 +25,10 @@ sub uri_as_string {
     my $uri = $self->uri;
     $uri->path('oauth/access_token');
     $uri->query_form(
+        type            => 'client_cred',
         client_id       => $self->app_id,
         client_secret   => $self->secret,
-        redirect_uri    => $self->postback,
-        code            => $self->code,
+        sessions        => join(',', @{$self->sessions})
     );
     return $uri->as_string;
 }
@@ -41,7 +36,7 @@ sub uri_as_string {
 sub request {
     my ($self) = @_;
     my $response = LWP::UserAgent->new->get($self->uri_as_string);
-    return Facebook::Graph::AccessToken::Response->new(response => $response);
+    return Facebook::Graph::Response->new(response => $response);
 }
 
 no Any::Moose;
@@ -50,7 +45,7 @@ __PACKAGE__->meta->make_immutable;
 
 =head1 NAME
 
-Facebook::Graph::AccessToken - Acquire an access token from Facebook.
+Facebook::Graph::Session - Convert old API sessions into Graph API access_tokens.
 
 
 =head1 SYNOPSIS
@@ -60,14 +55,13 @@ Facebook::Graph::AccessToken - Acquire an access token from Facebook.
     app_id      => $facebook_application_id,
     postback    => 'https://www.yourapplication.com/facebook/postback',
  );
- my $token_response_object = $fb->request_access_token($code_from_authorize_postback);
-
- my $token_string = $token_response_object->token;
- my $token_expires_epoch = $token_response_object->expires;
+ my $tokens = $fb->session(\@session_ids)->request->as_hashref;
 
 =head1 DESCRIPTION
 
-Allows you to request an access token from Facebook so you can make privileged requests on the Graph API.
+Allows you to request convert your old sessions into access tokens.
+
+B<NOTE:> If you're writing your application from scratch using L<Facebook::Graph> then you'll never need this module.
 
 =head1 METHODS
 
@@ -77,7 +71,7 @@ Returns the URI that will be called to fetch the token as a string. Mostly usefu
 
 =head2 request ()
 
-Makes a request to Facebook to fetch an access token. Returns a L<Facebook::Graph::AccessToken::Response> object.
+Makes a request to Facebook to fetch an access token. Returns a L<Facebook::Graph::Response> object. Example JSON response:
 
 =head1 LEGAL
 

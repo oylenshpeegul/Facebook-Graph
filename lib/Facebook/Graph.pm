@@ -1,9 +1,10 @@
 package Facebook::Graph;
 
-use Moose;
+use Any::Moose;
 use Facebook::Graph::AccessToken;
 use Facebook::Graph::Authorize;
 use Facebook::Graph::Query;
+use Facebook::Graph::Picture;
 
 has app_id => (
     is      => 'ro',
@@ -35,6 +36,17 @@ sub request_access_token {
     return $token;
 }
 
+sub convert_sessions {
+    my ($self, $sessions) = @_;
+    return Facebook::Graph::Session->new(
+        secret          => $self->secret,
+        app_id          => $self->app_id,
+        sessions        => $sessions,
+        )
+        ->request
+        ->as_hashref;
+}
+
 sub authorize { 
     my ($self) = @_;
     return Facebook::Graph::Authorize->new(
@@ -57,13 +69,19 @@ sub query {
     return Facebook::Graph::Query->new(%params);
 }
 
+sub picture {
+    my ($self, $object_name) = @_;
+    return Facebook::Graph::Picture->new( object_name => $object_name );
+}
 
-no Moose;
+
+
+no Any::Moose;
 __PACKAGE__->meta->make_immutable;
 
 =head1 NAME
 
-Facebook::Graph - An interface to the Facebook Graph API.
+Facebook::Graph - A fast and easy way to integrate your apps with Facebook.
 
 =head1 SYNOPSIS
 
@@ -79,6 +97,8 @@ Or better yet:
     ->select_fields(qw( id name picture ))
     ->request
     ->as_hashref;
+    
+ my $sarahs_picture_uri = $fb->picture('sarahbownds')->get_large->uri_as_string;
  
  
 =head2 Building A Privileged App
@@ -138,11 +158,11 @@ An access token string used to make Facebook requests as a privileged user. Requ
 
 =item app_id
 
-The application id that you get from Facebook after registering (L<http://developers.facebook.com/setup/>) your application on their site. Required if you'll be calling the C<request_access_token> or C<authorize> methods.
+The application id that you get from Facebook after registering (L<http://developers.facebook.com/setup/>) your application on their site. Required if you'll be calling the C<request_access_token>, C<convert_sessions>, or C<authorize> methods.
 
 =item secret
 
-The application secret that you get from Facebook after registering your application. Required if you'll be calling the C<request_access_token> method.
+The application secret that you get from Facebook after registering your application. Required if you'll be calling the C<request_access_token> or C<convert_sessions> methods.
 
 =item postback
 
@@ -185,25 +205,58 @@ Returns a hash reference of an object from facebook. A quick way to grab an obje
 An profile id like C<sarahbownds> or an object id like C<16665510298> for the Perl page.
 
 
+=head2 picture ( id )
+
+Returns a L<Facebook::Graph::Picture> object, which can be used to generate the URLs of the pictures of any object on Facebook.
+
+=head3 id
+
+An profile id like C<sarahbownds> or an object id like C<16665510298> for the Perl page.
+
+
+
+
+=head2 convert_sessions ( sessions )
+
+A utility method to convert old sessions into access tokens that can be used with the Graph API. Returns an array reference of hash references of access tokens.
+
+ [
+   {
+     "access_token": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+     "expires": 1271649600,
+   },
+   ...
+ ]
+
+See also L<Facebook::Graph::Session>.
+
+=head3 sessions
+
+An array reference of session ids from the old Facebook API.
+
+
+
 =head1 EXCEPTIONS
 
 This module throws exceptions when it encounters a problem. The exceptions are an array reference where the first element is an HTTP status code and the second element is a human readable string. For example:
 
- [400, 'Could not execute query (https://graph.facebook.com?fields=): GraphMethodException - Unsupported get request.']
+ [400, 'Could not execute request (https://graph.facebook.com?fields=): GraphMethodException - Unsupported get request.']
 
 
 =head1 TODO
 
-I still need to add publishing of content, deleting of content, access to pictures, impersonation, and analytics to have a feature complete API. In addition, a cookbook should be written, and a lot more tests as well.
+I still need to add publishing of content, deleting of content, impersonation, and analytics to have a feature complete API. In addition, a cookbook should be written, and a lot more tests as well.
 
 
 =head1 PREREQS
 
-L<Moose>
+L<Any::Moose>
 L<JSON>
 L<LWP>
 L<URI>
 L<Crypt::SSLeay>
+
+B<NOTE:> This module requires SSL to function, but on some systems L<Crypt::SSLeay> can be difficult to install. You may optionally choose to install L<IO::Socket::SSL> instead and it will provide the same function. Unfortunately that means you'll need to C<force> Facebook::Graph to install if you do not have C<Crypt::SSLeay> installed.
 
 =head1 SUPPORT
 

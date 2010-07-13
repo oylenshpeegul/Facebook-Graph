@@ -1,7 +1,7 @@
 package Facebook::Graph::Query;
 
-use Moose;
-use Facebook::Graph::Query::Response;
+use Any::Moose;
+use Facebook::Graph::Response;
 with 'Facebook::Graph::Role::Uri';
 use LWP::UserAgent;
 
@@ -170,10 +170,10 @@ sub request {
     my ($self, $uri) = @_;
     $uri ||= $self->uri_as_string;
     my $response = LWP::UserAgent->new->get($uri);
-    return Facebook::Graph::Query::Response->new(response => $response);
+    return Facebook::Graph::Response->new(response => $response);
 }
 
-no Moose;
+no Any::Moose;
 __PACKAGE__->meta->make_immutable;
 
 
@@ -352,7 +352,7 @@ Returns a URI string based upon all the methods you've called so far on the quer
 
 =head2 request ( [ uri ] )
 
-Forms a URI string based on every method you've called so far, and fetches the data. Returns a L<Facebook::Graph::Query::Response> object.
+Forms a URI string based on every method you've called so far, and fetches the data. Returns a L<Facebook::Graph::Response> object.
 
 =head3 uri
 
